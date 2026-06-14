@@ -28,6 +28,9 @@ jobs:
   - job: copr_build
     trigger: commit
     branch: main
+    # Don't append timestamp/branch to Release — upstream's b<n> tags
+    # already give us a clean monotonic version. Spec Release stays as-is.
+    update_release: false
     owner: gmipf
     project: media-preservation
     targets:
@@ -35,6 +38,7 @@ jobs:
 
   - job: copr_build
     trigger: pull_request
+    update_release: false
     owner: gmipf
     project: media-preservation
     targets:
