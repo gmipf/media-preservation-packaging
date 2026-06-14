@@ -5,39 +5,36 @@ srpm_build_deps:
   - rpmdevtools
 
 # Multi-package layout — each tool gets its own block under packages:.
-# create-archive overrides are needed because this repo holds only packaging
-# recipes (no upstream source), so default `git archive HEAD` would only
-# archive the spec. We use spectool to fetch Source0 from each spec instead.
-# Final stdout line of create-archive MUST be the archive path relative to
-# repo root.
+# When `paths:` is set, `specfile_path` and action-internal paths are
+# relative to that path (Packit joins them: paths + specfile_path).
+# create-archive overrides are needed because this repo holds only
+# packaging recipes (no upstream source); default `git archive HEAD`
+# would only archive the spec. We use spectool to fetch Source0 instead.
 packages:
   redumper:
-    # paths: defines the monorepo subtree for this package. Packit only
-    # considers files under these paths as part of redumper; a commit
-    # touching only fedora/mpf-check/* won't trigger redumper rebuilds.
     paths:
       - fedora/redumper/
-    specfile_path: fedora/redumper/redumper.spec
+    specfile_path: redumper.spec
     upstream_project_url: https://github.com/superg/redumper
     upstream_tag_template: "b{version}"
     actions:
       get-current-version:
-        - bash -c "rpmspec -q --queryformat '%{version}\n' fedora/redumper/redumper.spec | head -1"
+        - bash -c "rpmspec -q --queryformat '%{version}\n' redumper.spec | head -1"
       create-archive:
-        - bash -c "spectool -g fedora/redumper/redumper.spec 1>&2"
+        - bash -c "spectool -g redumper.spec 1>&2"
         - bash -c "ls -1 redumper-b*.tar.gz | head -1"
 
   mpf-check:
     paths:
       - fedora/mpf-check/
-    specfile_path: fedora/mpf-check/mpf-check.spec
+    specfile_path: mpf-check.spec
     upstream_project_url: https://github.com/SabreTools/MPF
     # No get-current-version action — watch-mpf-rolling.yml writes the
     # Version line into the spec directly when the upstream rolling SHA
     # changes, so rpmspec already returns the correct value.
     actions:
       create-archive:
-        - bash -c "spectool -g fedora/mpf-check/mpf-check.spec 1>&2"
+        - bash -c "spectool -g mpf-check.spec 1>&2"
         - bash -c "ls -1 MPF.Check_net10.0_linux-x64_release.zip"
 
 jobs:
