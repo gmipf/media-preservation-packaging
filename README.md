@@ -1,4 +1,4 @@
-# media-preservation-packaging
+# packaging-media-preservation
 
 Distribution packaging recipes (specs, debian rules, PKGBUILDs, …) for the
 [`gmipf/media-preservation`](https://copr.fedorainfracloud.org/coprs/gmipf/media-preservation/)

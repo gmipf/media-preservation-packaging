@@ -1,7 +1,7 @@
 specfile_path: fedora/redumper/redumper.spec
 upstream_project_url: https://github.com/superg/redumper
 upstream_tag_template: "b{version}"
-issue_repository: https://github.com/gmipf/media-preservation-packaging
+issue_repository: https://github.com/gmipf/packaging-media-preservation
 
 srpm_build_deps:
   - rpm-build
