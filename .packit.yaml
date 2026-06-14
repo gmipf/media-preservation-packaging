@@ -1,35 +1,72 @@
-specfile_path: fedora/redumper/redumper.spec
-upstream_project_url: https://github.com/superg/redumper
-upstream_tag_template: "b{version}"
 issue_repository: https://github.com/gmipf/packaging-media-preservation
 
 srpm_build_deps:
   - rpm-build
   - rpmdevtools
 
-# This repo only contains packaging recipes — no upstream source code.
-# Override Packit's default `git archive` (which would archive the spec
-# file) with explicit spectool fetch of Source0 from the spec.
-# create-archive must output the archive path (relative to repo root)
-# as the final stdout line.
-actions:
-  get-current-version:
-    - bash -c "rpmspec -q --queryformat '%{version}\n' fedora/redumper/redumper.spec | head -1"
-  create-archive:
-    - bash -c "spectool -g fedora/redumper/redumper.spec 1>&2"
-    - bash -c "ls -1 redumper-b*.tar.gz | head -1"
+# Multi-package layout — each tool gets its own block under packages:.
+# create-archive overrides are needed because this repo holds only packaging
+# recipes (no upstream source), so default `git archive HEAD` would only
+# archive the spec. We use spectool to fetch Source0 from each spec instead.
+# Final stdout line of create-archive MUST be the archive path relative to
+# repo root.
+packages:
+  redumper:
+    # paths: defines the monorepo subtree for this package. Packit only
+    # considers files under these paths as part of redumper; a commit
+    # touching only fedora/mpf-check/* won't trigger redumper rebuilds.
+    paths:
+      - fedora/redumper/
+    specfile_path: fedora/redumper/redumper.spec
+    upstream_project_url: https://github.com/superg/redumper
+    upstream_tag_template: "b{version}"
+    actions:
+      get-current-version:
+        - bash -c "rpmspec -q --queryformat '%{version}\n' fedora/redumper/redumper.spec | head -1"
+      create-archive:
+        - bash -c "spectool -g fedora/redumper/redumper.spec 1>&2"
+        - bash -c "ls -1 redumper-b*.tar.gz | head -1"
+
+  mpf-check:
+    paths:
+      - fedora/mpf-check/
+    specfile_path: fedora/mpf-check/mpf-check.spec
+    upstream_project_url: https://github.com/SabreTools/MPF
+    # No get-current-version action — watch-mpf-rolling.yml writes the
+    # Version line into the spec directly when the upstream rolling SHA
+    # changes, so rpmspec already returns the correct value.
+    actions:
+      create-archive:
+        - bash -c "spectool -g fedora/mpf-check/mpf-check.spec 1>&2"
+        - bash -c "ls -1 MPF.Check_net10.0_linux-x64_release.zip"
 
 jobs:
   - job: pull_from_upstream
     trigger: release
+    packages: [redumper]
     dist_git_branches:
       - fedora-43
+
+  # Per-package commit jobs. Packit uses each package's package-level
+  # paths: declaration (see packages: above) to determine which packages
+  # are "touched" by a commit and only fires the matching jobs.
+  # Redumper: spec-supplied b<n> version is monotonic, no auto-suffix.
+  # mpf-check: watcher writes full Release (1.<ts>.<sha>%{?dist}) before
+  # commit, so no auto-suffix needed either.
+  - job: copr_build
+    trigger: commit
+    branch: main
+    packages: [redumper]
+    update_release: false
+    owner: gmipf
+    project: media-preservation
+    targets:
+      - fedora-all-x86_64
 
   - job: copr_build
     trigger: commit
     branch: main
-    # Don't append timestamp/branch to Release — upstream's b<n> tags
-    # already give us a clean monotonic version. Spec Release stays as-is.
+    packages: [mpf-check]
     update_release: false
     owner: gmipf
     project: media-preservation
@@ -38,6 +75,7 @@ jobs:
 
   - job: copr_build
     trigger: pull_request
+    packages: [redumper, mpf-check]
     update_release: false
     owner: gmipf
     project: media-preservation

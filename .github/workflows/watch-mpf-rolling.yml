@@ -1,0 +1,57 @@
+name: watch-mpf-rolling
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync mpf-check spec with upstream rolling release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SPEC=fedora/mpf-check/mpf-check.spec
+          MARKER=fedora/mpf-check/.rolling-sha
+
+          UPSTREAM_SHA_FULL=$(gh api repos/SabreTools/MPF/git/refs/tags/rolling --jq '.object.sha')
+          LOCAL_SHA=$(cat "$MARKER" 2>/dev/null || echo none)
+
+          if [ "$UPSTREAM_SHA_FULL" = "$LOCAL_SHA" ]; then
+            echo "Rolling SHA unchanged ($LOCAL_SHA) — no rebuild needed"
+            exit 0
+          fi
+
+          UPSTREAM_SHA=${UPSTREAM_SHA_FULL:0:8}
+          UPSTREAM_TS=$(gh api repos/SabreTools/MPF/releases/tags/rolling --jq '.published_at' | tr -d '-:TZ' | head -c 14)
+          UPSTREAM_VERSION=$(curl -fsSL "https://raw.githubusercontent.com/SabreTools/MPF/${UPSTREAM_SHA_FULL}/MPF.Check/MPF.Check.csproj" \
+                             | grep -oP '(?<=<VersionPrefix>)[^<]+' | head -1)
+
+          if [ -z "$UPSTREAM_VERSION" ]; then
+            echo "Failed to extract VersionPrefix from csproj"
+            exit 1
+          fi
+
+          echo "Upstream: version=$UPSTREAM_VERSION sha=$UPSTREAM_SHA ts=$UPSTREAM_TS"
+
+          echo "$UPSTREAM_SHA_FULL" > "$MARKER"
+          sed -i "s/^Version:.*/Version:        ${UPSTREAM_VERSION}/" "$SPEC"
+          sed -i "s/^Release:.*/Release:        1.${UPSTREAM_TS}.${UPSTREAM_SHA}%{?dist}/" "$SPEC"
+
+          if git diff --quiet; then
+            echo "Spec unchanged after rewrite (unexpected) — exiting clean"
+            exit 0
+          fi
+
+          git config user.name "rolling-watcher"
+          git config user.email "actions@github.com"
+          git commit -am "chore: mpf-check ${UPSTREAM_VERSION} rolling ${UPSTREAM_SHA} @ ${UPSTREAM_TS}"
+          git push
