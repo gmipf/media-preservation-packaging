@@ -29,11 +29,11 @@ Source4:        mpf-check.1
 Source5:        mpf-cli.1
 Source6:        mpf-gui.1
 
-Source10:       icons/mpf-32.png
-Source11:       icons/mpf-64.png
-Source12:       icons/mpf-128.png
-Source13:       icons/mpf-256.png
-Source14:       icons/mpf-512.png
+Source10:       mpf-32.png
+Source11:       mpf-64.png
+Source12:       mpf-128.png
+Source13:       mpf-256.png
+Source14:       mpf-512.png
 
 ExclusiveArch:  x86_64
 BuildRequires:  unzip

@@ -35,7 +35,7 @@ see the [COPR project page](https://copr.fedorainfracloud.org/coprs/gmipf/media-
     │   ├── mpf.spec                        # multi-subpackage: mpf + mpf-check + mpf-cli + mpf-gui
     │   ├── mpf-gui.desktop                 # menu entry for `mpf-gui`
     │   ├── mpf-check.1 / mpf-cli.1 / mpf-gui.1  # handwritten manpages
-    │   ├── icons/mpf-{32,64,128,256,512}.png    # hicolor icons (from upstream Icon.ico)
+    │   ├── mpf-{32,64,128,256,512}.png     # hicolor icons (from upstream Icon.ico)
     │   └── .rolling-sha                    # last seen upstream rolling SHA (written by watcher)
     ├── discimagecreator/
     │   ├── discimagecreator.spec           # multi-source: DIC + 3 helpers in one fat RPM
