@@ -1,0 +1,175 @@
+%global dicver       20260101
+%global eccedcver    20240901
+%global dvdauthver   1.4
+%global unscramblver 0.5.5
+
+%global dicdir       %{_libexecdir}/%{name}
+
+# Release builds are stripped; auto-generated debuginfo/debugsource
+# subpackages would be empty / fail.
+%global debug_package %{nil}
+
+Name:           discimagecreator
+Version:        %{dicver}
+Release:        1%{?dist}
+Summary:        Low-level disc dumper plus EccEdc / DVDAuth / unscrambler helpers
+License:        Apache-2.0 AND GPL-3.0-or-later AND GPL-2.0-or-later
+URL:            https://github.com/saramibreak/DiscImageCreator
+Source0:        https://github.com/saramibreak/DiscImageCreator/archive/refs/tags/%{dicver}.tar.gz#/DiscImageCreator-%{dicver}.tar.gz
+Source1:        https://github.com/saramibreak/EccEdc/archive/refs/tags/%{eccedcver}.tar.gz#/EccEdc-%{eccedcver}.tar.gz
+Source2:        https://github.com/saramibreak/DVDAuth/archive/refs/tags/v%{dvdauthver}.tar.gz#/DVDAuth-%{dvdauthver}.tar.gz
+Source3:        https://github.com/saramibreak/unscrambler/archive/refs/tags/%{unscramblver}.tar.gz#/unscrambler-%{unscramblver}.tar.gz
+Source4:        discimagecreator.1
+ExclusiveArch:  x86_64
+
+BuildRequires:  gcc-c++
+BuildRequires:  make
+BuildRequires:  meson
+BuildRequires:  ninja-build
+BuildRequires:  pkgconfig(libarchive)
+BuildRequires:  pkgconfig(openssl)
+BuildRequires:  pkgconfig(zlib)
+
+%description
+DiscImageCreator (DIC) is a command-line tool for byte-perfect dumping
+of optical discs (CD, GD, DVD, HD-DVD, BD, GameCube, Wii, XBOX,
+XBOX 360) and various disks (Floppy, MO, USB). It is one of the dumpers
+supported by the Redump preservation project.
+
+This RPM bundles four binaries from the same upstream author:
+
+  * discimagecreator: main dumper (real binary in libexec; PATH aliases
+                      'dic', 'DiscImageCreator.out' also provided for
+                      compatibility with MPF and tooling that calls the
+                      original upstream filename)
+  * eccedc:           sector ECC/EDC validator/fixer
+  * dvdauth:          CSS/CPPM/CPRM DVD authentication tool
+  * unscrambler:      brute-force unscramble for non-standard DVD IVs
+
+cap_sys_rawio is set on the main DIC binary and dvdauth so vendor SCSI
+passthrough commands work without sudo. See discimagecreator(1) for
+details on drive access and runtime data file locations.
+
+%prep
+%setup -q -n DiscImageCreator-%{dicver}
+%setup -q -T -D -a 1 -n DiscImageCreator-%{dicver}
+%setup -q -T -D -a 2 -n DiscImageCreator-%{dicver}
+%setup -q -T -D -a 3 -n DiscImageCreator-%{dicver}
+
+# Patch hardcoded data-directory probe paths from upstream's CamelCase
+# convention (/usr/share/DiscImageCreator/) to lowercase, so the binary
+# finds its data files at /usr/share/discimagecreator/ which matches the
+# Fedora packaging convention used here. Touches two source files; if
+# upstream ever moves these strings the patch fails loudly.
+sed -i \
+    -e 's|/usr/local/share/DiscImageCreator/|/usr/local/share/discimagecreator/|g' \
+    -e 's|/usr/share/DiscImageCreator/|/usr/share/discimagecreator/|g' \
+    DiscImageCreator/get.cpp \
+    DiscImageCreator/xml.cpp
+
+%build
+# Main DiscImageCreator via meson against system openssl/zlib/libarchive
+%meson
+%meson_build
+
+# Three helper tools via their bundled makefiles. CXX=g++ forces the
+# compiler (the makefiles default to $(CXX) which may not be set in COPR
+# clean chroots).
+make -C EccEdc-%{eccedcver}/EccEdc       CXX=g++ %{?_smp_mflags}
+make -C DVDAuth-%{dvdauthver}/DVDAuth    CXX=g++ %{?_smp_mflags}
+make -C unscrambler-%{unscramblver}      CXX=g++ %{?_smp_mflags}
+
+%install
+# meson installs binary to %{_bindir}/DiscImageCreator and data files
+# to %{_datadir}/DiscImageCreator/ (CamelCase project_name as subdir).
+%meson_install
+
+# Move binary into libexec under its upstream-original filename
+# (DiscImageCreator.out — same .out convention as the helpers). All
+# /usr/bin/ entries are symlinks added below.
+install -d %{buildroot}%{dicdir}
+mv %{buildroot}%{_bindir}/DiscImageCreator %{buildroot}%{dicdir}/DiscImageCreator.out
+
+# Helper binaries land in libexec next to main DIC, with their original
+# upstream filenames intact. DIC's GetCmd() uses readlink(/proc/self/exe)
+# to find its own directory and then looks for ./EccEdc.out, ./DVDAuth.out,
+# ./unscrambler.out — those exact filenames are mandatory here.
+install -m 0755 EccEdc-%{eccedcver}/EccEdc/EccEdc.out         %{buildroot}%{dicdir}/EccEdc.out
+install -m 0755 DVDAuth-%{dvdauthver}/DVDAuth/DVDAuth.out     %{buildroot}%{dicdir}/DVDAuth.out
+install -m 0755 unscrambler-%{unscramblver}/unscrambler.out   %{buildroot}%{dicdir}/unscrambler.out
+
+# Move meson-installed data dir from CamelCase to lowercase (matches the
+# patched probe paths in get.cpp / xml.cpp).
+mv %{buildroot}%{_datadir}/DiscImageCreator %{buildroot}%{_datadir}/%{name}
+
+# Extra Release_ANSI data files referenced by the binary at runtime
+# (default.dat + driveOffset.txt are already installed by meson).
+install -m 0644 Release_ANSI/C2ErrorProtect.txt   %{buildroot}%{_datadir}/%{name}/
+install -m 0644 Release_ANSI/ReadErrorProtect.txt %{buildroot}%{_datadir}/%{name}/
+install -m 0644 "Release_ANSI/DVDRawBruteforce - Drive Sheet - Sheet1.tsv" \
+                                                  %{buildroot}%{_datadir}/%{name}/
+
+# /usr/bin/ symlinks. Three for the main binary (canonical lowercase,
+# the 'dic' short alias, plus the upstream-name DiscImageCreator.out for
+# MPF compatibility — MPF.Frontend defaults DiscImageCreatorPath to
+# exactly that filename on Unix). Three lowercase helper aliases follow
+# the same {alias → upstream-name.out} pattern.
+install -d %{buildroot}%{_bindir}
+ln -s ../libexec/%{name}/DiscImageCreator.out %{buildroot}%{_bindir}/%{name}
+ln -s ../libexec/%{name}/DiscImageCreator.out %{buildroot}%{_bindir}/dic
+ln -s ../libexec/%{name}/DiscImageCreator.out %{buildroot}%{_bindir}/DiscImageCreator.out
+ln -s ../libexec/%{name}/EccEdc.out           %{buildroot}%{_bindir}/eccedc
+ln -s ../libexec/%{name}/DVDAuth.out          %{buildroot}%{_bindir}/dvdauth
+ln -s ../libexec/%{name}/unscrambler.out      %{buildroot}%{_bindir}/unscrambler
+
+# Manpage with symlink aliases for each binary name a user might type
+install -d %{buildroot}%{_mandir}/man1
+install -m 0644 %{SOURCE4} %{buildroot}%{_mandir}/man1/%{name}.1
+ln -s %{name}.1 %{buildroot}%{_mandir}/man1/dic.1
+ln -s %{name}.1 %{buildroot}%{_mandir}/man1/eccedc.1
+ln -s %{name}.1 %{buildroot}%{_mandir}/man1/dvdauth.1
+ln -s %{name}.1 %{buildroot}%{_mandir}/man1/unscrambler.1
+
+%files
+%license LICENSE
+%doc README.md
+%doc Release_ANSI/Doc/Reference.md
+%doc Release_ANSI/Doc/TestedDrive.txt
+%doc Release_ANSI/Doc/KnownIssue.txt
+%doc Release_ANSI/Doc/ChangeLog.txt
+%doc Release_ANSI/Doc/Todo.txt
+%doc Release_ANSI/Doc/Firmware&Tool.md
+%dir %{dicdir}
+%caps(cap_sys_rawio=ep) %attr(0755,root,root) %{dicdir}/DiscImageCreator.out
+%caps(cap_sys_rawio=ep) %attr(0755,root,root) %{dicdir}/DVDAuth.out
+%{dicdir}/EccEdc.out
+%{dicdir}/unscrambler.out
+%{_bindir}/%{name}
+%{_bindir}/dic
+%{_bindir}/DiscImageCreator.out
+%{_bindir}/eccedc
+%{_bindir}/dvdauth
+%{_bindir}/unscrambler
+%{_datadir}/%{name}/
+%{_mandir}/man1/%{name}.1*
+%{_mandir}/man1/dic.1*
+%{_mandir}/man1/eccedc.1*
+%{_mandir}/man1/dvdauth.1*
+%{_mandir}/man1/unscrambler.1*
+
+%changelog
+* Mon Jun 15 2026 gmipf <gmipf64@gmail.com> - 20260101-1
+- Initial COPR build of DiscImageCreator suite (Phase 3.5)
+- Bundles DiscImageCreator (Apache-2.0) plus three helper tools:
+  EccEdc (GPL-3.0+), DVDAuth (GPL-2.0+), unscrambler (GPL-2.0+)
+- Source builds for all four binaries; no upstream binary blobs
+- Main DIC builds via meson against system libarchive/zlib/openssl
+- Helper tools build via their bundled makefiles
+- Real binaries live in %{_libexecdir}/discimagecreator/; /usr/bin/
+  has lowercase aliases (discimagecreator, eccedc, dvdauth, unscrambler)
+  plus dic short-form and DiscImageCreator.out for MPF compatibility
+- cap_sys_rawio set on the main binary and DVDAuth.out for vendor SCSI
+  passthrough commands without sudo
+- Hardcoded /usr/share/DiscImageCreator/ probe path patched to lowercase
+  /usr/share/discimagecreator/ in %prep
+- Includes discimagecreator(1) manpage with symlinks for every alias

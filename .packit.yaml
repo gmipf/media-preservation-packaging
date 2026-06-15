@@ -37,6 +37,20 @@ packages:
         - bash -c "spectool -g mpf-check.spec 1>&2"
         - bash -c "ls -1 MPF.Check_net10.0_linux-x64_release.zip"
 
+  discimagecreator:
+    paths:
+      - fedora/discimagecreator/
+    specfile_path: discimagecreator.spec
+    upstream_project_url: https://github.com/saramibreak/DiscImageCreator
+    # Multi-source build: spectool -g fetches all 4 Source* archives
+    # (DiscImageCreator + EccEdc + DVDAuth + unscrambler helper tools).
+    # create-archive returns the main DIC tarball as the primary archive;
+    # SRPM packs all four automatically.
+    actions:
+      create-archive:
+        - bash -c "spectool -g discimagecreator.spec 1>&2"
+        - bash -c "ls -1 DiscImageCreator-*.tar.gz | head -1"
+
 jobs:
   - job: pull_from_upstream
     trigger: release
@@ -70,9 +84,21 @@ jobs:
     targets:
       - fedora-all-x86_64
 
+  # discimagecreator: spec-supplied tag-version (YYYYMMDD) is monotonic,
+  # no auto-suffix needed.
+  - job: copr_build
+    trigger: commit
+    branch: main
+    packages: [discimagecreator]
+    update_release: false
+    owner: gmipf
+    project: media-preservation
+    targets:
+      - fedora-all-x86_64
+
   - job: copr_build
     trigger: pull_request
-    packages: [redumper, mpf-check]
+    packages: [redumper, mpf-check, discimagecreator]
     update_release: false
     owner: gmipf
     project: media-preservation
