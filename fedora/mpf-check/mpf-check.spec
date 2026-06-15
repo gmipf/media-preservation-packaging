@@ -4,13 +4,20 @@
 %global _build_id_links none
 
 Name:           mpf-check
-Version:        3.7.1
-# Release format: <upstream-rolling-snapshot>.<our-iteration>%{?dist}
-# Snapshot = <UTC-timestamp-compact>.<short-SHA>, written by the
-# watch-mpf-rolling.yml workflow whenever the upstream rolling tag
-# moves. Trailing .1 is our packaging-iteration counter (bump if we
-# change the spec without an upstream change).
-Release:        20260612220844.b16abc89.1%{?dist}
+# Epoch bump (0 -> 1, once-only) was needed during the format migration
+# from `3.7.1-1.<ts>.<sha>%{?dist}` to the current tilde-style: tilde
+# Version (3.7.1~...) sorts LOWER than bare 3.7.1, so without Epoch
+# the format switch would look like a downgrade to dnf. Stays at 1
+# forever from here on.
+Epoch:          1
+# Rolling-snapshot pre-release style (mirrors the convention used on
+# aaru: `~` between base version and snapshot identifier, packaging
+# iteration in Release as the trailing -N). watch-mpf-rolling.yml
+# rewrites the snapshot half on every upstream rolling-tag move; the
+# Release stays 1 there since each new snapshot is a fresh identity.
+# Bump Release if you tweak the spec without an upstream change.
+Version:        3.7.1~20260612220844.b16abc89
+Release:        1%{?dist}
 Summary:        Validator that generates Redump !submissionInfo.txt from disc-dump logs
 
 License:        MIT

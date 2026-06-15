@@ -43,9 +43,12 @@ jobs:
           echo "Upstream: version=$UPSTREAM_VERSION sha=$UPSTREAM_SHA ts=$UPSTREAM_TS"
 
           echo "$UPSTREAM_SHA_FULL" > "$MARKER"
-          sed -i "s/^Version:.*/Version:        ${UPSTREAM_VERSION}/" "$SPEC"
-          # Release format: <snapshot>.<our-iteration>%{?dist} — see spec comment
-          sed -i "s/^Release:.*/Release:        ${UPSTREAM_TS}.${UPSTREAM_SHA}.1%{?dist}/" "$SPEC"
+          # Tilde-style rolling snapshot in Version:
+          #   <base>~<UTC-TS>.<short-SHA>
+          # Release stays at 1 — each new snapshot is a fresh identity
+          # so we don't need to bump iteration on upstream changes.
+          sed -i "s/^Version:.*/Version:        ${UPSTREAM_VERSION}~${UPSTREAM_TS}.${UPSTREAM_SHA}/" "$SPEC"
+          sed -i "s/^Release:.*/Release:        1%{?dist}/" "$SPEC"
 
           git add "$SPEC" "$MARKER"
           if git diff --cached --quiet; then
