@@ -14,13 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Sync mpf-check spec with upstream rolling release
+      - name: Sync mpf spec with upstream rolling release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          SPEC=fedora/mpf-check/mpf-check.spec
-          MARKER=fedora/mpf-check/.rolling-sha
+          SPEC=fedora/mpf/mpf.spec
+          MARKER=fedora/mpf/.rolling-sha
 
           UPSTREAM_SHA_FULL=$(gh api repos/SabreTools/MPF/git/refs/tags/rolling --jq '.object.sha')
           LOCAL_SHA=$(cat "$MARKER" 2>/dev/null || echo none)
@@ -32,6 +32,9 @@ jobs:
 
           UPSTREAM_SHA=${UPSTREAM_SHA_FULL:0:8}
           UPSTREAM_TS=$(gh api repos/SabreTools/MPF/releases/tags/rolling --jq '.published_at' | tr -d -- '-:TZ' | head -c 14)
+
+          # All three csproj files (MPF.Check, MPF.CLI, MPF.Avalonia) carry
+          # the same <VersionPrefix>. Reading just one is enough.
           UPSTREAM_VERSION=$(curl -fsSL "https://raw.githubusercontent.com/SabreTools/MPF/${UPSTREAM_SHA_FULL}/MPF.Check/MPF.Check.csproj" \
                              | grep -oP '(?<=<VersionPrefix>)[^<]+' | head -1)
 
@@ -43,12 +46,13 @@ jobs:
           echo "Upstream: version=$UPSTREAM_VERSION sha=$UPSTREAM_SHA ts=$UPSTREAM_TS"
 
           echo "$UPSTREAM_SHA_FULL" > "$MARKER"
-          # Tilde-style rolling snapshot in Version:
-          #   <base>~<UTC-TS>.<short-SHA>
-          # Release stays at 1 — each new snapshot is a fresh identity
-          # so we don't need to bump iteration on upstream changes.
-          sed -i "s/^Version:.*/Version:        ${UPSTREAM_VERSION}~${UPSTREAM_TS}.${UPSTREAM_SHA}/" "$SPEC"
-          sed -i "s/^Release:.*/Release:        1%{?dist}/" "$SPEC"
+
+          # Tilde-style rolling snapshot lives in two %global lines in the
+          # spec. We rewrite both: %global mpfver -> base, %global mpfsnap
+          # -> <UTC-TS>.<short-SHA>. Release stays at 1 — each new snapshot
+          # is a fresh identity.
+          sed -i "s/^%global mpfver .*/%global mpfver         ${UPSTREAM_VERSION}/"           "$SPEC"
+          sed -i "s/^%global mpfsnap .*/%global mpfsnap        ${UPSTREAM_TS}.${UPSTREAM_SHA}/" "$SPEC"
 
           git add "$SPEC" "$MARKER"
           if git diff --cached --quiet; then
@@ -58,5 +62,5 @@ jobs:
 
           git config user.name "rolling-watcher"
           git config user.email "actions@github.com"
-          git commit -m "chore: mpf-check ${UPSTREAM_VERSION} rolling ${UPSTREAM_SHA} @ ${UPSTREAM_TS}"
+          git commit -m "chore: mpf ${UPSTREAM_VERSION} rolling ${UPSTREAM_SHA} @ ${UPSTREAM_TS}"
           git push

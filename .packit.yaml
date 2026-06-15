@@ -24,17 +24,20 @@ packages:
         - bash -c "spectool -g redumper.spec 1>&2"
         - bash -c "ls -1 redumper-b*.tar.gz | head -1"
 
-  mpf-check:
+  mpf:
     paths:
-      - fedora/mpf-check/
-    specfile_path: mpf-check.spec
+      - fedora/mpf/
+    specfile_path: mpf.spec
     upstream_project_url: https://github.com/SabreTools/MPF
-    # No get-current-version action — watch-mpf-rolling.yml writes the
-    # Version line into the spec directly when the upstream rolling SHA
-    # changes, so rpmspec already returns the correct value.
+    # No get-current-version action — watch-mpf-rolling.yml rewrites the
+    # `%global mpfver` and `%global mpfsnap` lines whenever the upstream
+    # rolling SHA changes, so rpmspec returns the correct version.
+    # spectool -g fetches all three Source* zips (check + cli + gui);
+    # SRPM packs them all. We return the Check zip as the primary archive
+    # because Packit only needs one stdout line to anchor the archive set.
     actions:
       create-archive:
-        - bash -c "spectool -g mpf-check.spec 1>&2"
+        - bash -c "spectool -g mpf.spec 1>&2"
         - bash -c "ls -1 MPF.Check_net10.0_linux-x64_release.zip"
 
   discimagecreator:
@@ -76,8 +79,9 @@ jobs:
   # paths: declaration (see packages: above) to determine which packages
   # are "touched" by a commit and only fires the matching jobs.
   # Redumper: spec-supplied b<n> version is monotonic, no auto-suffix.
-  # mpf-check: watcher writes full Release (1.<ts>.<sha>%{?dist}) before
-  # commit, so no auto-suffix needed either.
+  # mpf: watcher writes Version (mpfver~mpfsnap) into the spec on every
+  # upstream rolling-tag change; tilde sorts before any other char so
+  # snapshot ordering is consistent without auto-suffix.
   - job: copr_build
     trigger: commit
     branch: main
@@ -91,7 +95,7 @@ jobs:
   - job: copr_build
     trigger: commit
     branch: main
-    packages: [mpf-check]
+    packages: [mpf]
     update_release: false
     owner: gmipf
     project: media-preservation
@@ -124,7 +128,7 @@ jobs:
 
   - job: copr_build
     trigger: pull_request
-    packages: [redumper, mpf-check, discimagecreator, aaru]
+    packages: [redumper, mpf, discimagecreator, aaru]
     update_release: false
     owner: gmipf
     project: media-preservation
