@@ -4,18 +4,14 @@
 %global _build_id_links none
 
 Name:           mpf-check
-# Epoch bump (0 -> 1, once-only) was needed during the format migration
-# from `3.7.1-1.<ts>.<sha>%{?dist}` to the current tilde-style: tilde
-# Version (3.7.1~...) sorts LOWER than bare 3.7.1, so without Epoch
-# the format switch would look like a downgrade to dnf. Stays at 1
-# forever from here on.
-Epoch:          1
-# Rolling-snapshot pre-release style (mirrors the convention used on
-# aaru: `~` between base version and snapshot identifier, packaging
-# iteration in Release as the trailing -N). watch-mpf-rolling.yml
-# rewrites the snapshot half on every upstream rolling-tag move; the
-# Release stays 1 there since each new snapshot is a fresh identity.
-# Bump Release if you tweak the spec without an upstream change.
+# Rolling-snapshot pre-release style (matches aaru): `~` between base
+# version and snapshot identifier, packaging iteration in Release as
+# the trailing -N. watch-mpf-rolling.yml rewrites the snapshot half
+# on every upstream rolling-tag move; Release stays 1 since each new
+# snapshot is a fresh identity. Bump Release only on spec-only edits.
+# No Epoch: COPR package history was wiped (copr-cli delete-package)
+# before this build, so nothing previously published needs to be
+# sort-overridden.
 Version:        3.7.1~20260612220844.b16abc89
 Release:        1%{?dist}
 Summary:        Validator that generates Redump !submissionInfo.txt from disc-dump logs
@@ -67,5 +63,16 @@ chmod 0755 %{buildroot}%{_bindir}/mpf-check
 %dir %{_libdir}/mpf-check
 
 %changelog
+* Mon Jun 15 2026 gmipf <gmipf64@gmail.com> - 3.7.1~20260612220844.b16abc89-1
+- Migrate to tilde-style versioning (Version: 3.7.1~<UTC-TS>.<short-SHA>,
+  Release: 1) to match the convention used on aaru: rolling snapshot
+  identifier sits in Version after `~`, packaging iteration is the
+  trailing -N of NEVRA. Watcher writes both fields on every upstream
+  rolling-tag move.
+- COPR package history wiped (copr-cli delete-package mpf-check) so
+  this build can ship under implicit Epoch=0 — the previous form
+  (3.7.1-1.<snapshot>%{?dist}) would otherwise have outranked the
+  new tilde Version.
+
 * Sun Jun 14 2026 gmipf - 3.7.1-1
 - Initial package, repackaging upstream rolling release

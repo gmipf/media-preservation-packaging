@@ -18,17 +18,12 @@
 %global __provides_exclude ^lib.*\.so.*$
 
 Name:           aaru
-# Epoch bump (0 -> 1) is needed once-only on this rewrite: previous
-# build was aaru-6.0.0-0.alpha.19.2 and the new tilde-style Version
-# (6.0.0~alpha.19) sorts LOWER than the bare 6.0.0 that prior Release
-# claimed (`~` outranks empty string). Without Epoch, dnf would see
-# the migration as a downgrade. Epoch stays at 1 from here on — even
-# after a future stable 6.0.0 ships, since Epoch is forever.
-Epoch:          1
 # Tilde-style pre-release (mirrors upstream pkg/rpm/aaru.spec):
 #   6.0.0~alpha.19  <  6.0.0  <  6.0.1
 # Future stable v6.0.0 will sort higher automatically — no clever
-# leading-0 dance in Release needed.
+# leading-0 dance in Release needed. No Epoch field: COPR package
+# history was wiped (copr-cli delete-package) before this build, so
+# nothing previously published needs to be sort-overridden.
 Version:        %{aaruver}~%{aaruprerel}
 Release:        1%{?dist}
 Summary:        Data preservation suite for optical, magnetic and solid-state media
@@ -161,6 +156,15 @@ ln -sf %{aarudir}/aaru %{buildroot}%{_bindir}/aaru
 %{_mandir}/man1/aaru.1*
 
 %changelog
+* Mon Jun 15 2026 gmipf <gmipf64@gmail.com> - 6.0.0~alpha.19-1
+- Wipe COPR package history (copr-cli delete-package aaru) and
+  rebuild fresh under the tilde-style convention without an Epoch
+  field. The earlier Epoch=1 bump documented below was an artifact
+  of the format migration from 0.alpha.NN.M-style Release; clearing
+  the COPR side first lets us go back to implicit Epoch=0.
+- Same upstream payload and install layout as the previous .2 build,
+  only the NEVRA presentation changes.
+
 * Mon Jun 15 2026 gmipf <gmipf64@gmail.com> - 1:6.0.0~alpha.19-1
 - Migrate to upstream-style tilde versioning (Version: 6.0.0~alpha.19,
   Release: 1). Matches the upstream pkg/rpm/aaru.spec convention and
