@@ -10,12 +10,15 @@ respective project URLs (see below).
 
 ## Tools
 
-| Tool | Upstream pinned to | Fedora | Debian | Arch | Alpine |
+| Tool | Update mode | Fedora | Debian | Arch | Alpine |
 |---|---|---|---|---|---|
-| [redumper](https://github.com/superg/redumper) | b724 | ✅ | — | — | — |
-| [MPF.Check](https://github.com/SabreTools/MPF) | rolling (auto-tracked) | ✅ | — | — | — |
-| [DiscImageCreator suite](https://github.com/saramibreak/DiscImageCreator) | 20260101 (+ EccEdc / DVDAuth / unscrambler bundled) | ✅ | — | — | — |
-| [Aaru](https://github.com/aaru-dps/Aaru) | v6.0.0-alpha.19 | ✅ | — | — | — |
+| [redumper](https://github.com/superg/redumper) | manual bump on new upstream tags (source-built) | ✅ | — | — | — |
+| [MPF.Check](https://github.com/SabreTools/MPF) | rolling, auto-tracked every 6 h (binary repackage) | ✅ | — | — | — |
+| [DiscImageCreator suite](https://github.com/saramibreak/DiscImageCreator) | manual bump; bundles DIC + EccEdc + DVDAuth + unscrambler in one RPM (source-built) | ✅ | — | — | — |
+| [Aaru](https://github.com/aaru-dps/Aaru) | manual bump on new alphas; CLI + Avalonia GUI ship as one binary, launch the GUI via `aaru gui` (binary repackage) | ✅ | — | — | — |
+
+For the currently shipping versions and full install instructions,
+see the [COPR project page](https://copr.fedorainfracloud.org/coprs/gmipf/media-preservation/).
 
 ## Layout
 
@@ -91,9 +94,9 @@ for details.
 All RPMs in this repo follow one convention:
 
 - **Stable upstream tags**: bare Version + simple Release-N
-  `redumper-724-2`, `discimagecreator-20260101-2`
+  (e.g. `<name>-<upstream-tag>-N`)
 - **Pre-releases / rolling snapshots**: `<base>~<extra>` Version + bare-N Release
-  `aaru-6.0.0~alpha.19-1`, `mpf-check-3.7.1~20260612220844.b16abc89-1`
+  (e.g. `<name>-<upstream-base>~<pre-release-or-snapshot>-N`)
 - **Iteration counter** (`-1`, `-2`, …) is always the last NEVRA segment
 - **Epoch** stays at 0 (implicit) across the board — no `1:` prefix on any package
 
