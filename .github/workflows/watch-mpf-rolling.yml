@@ -44,7 +44,8 @@ jobs:
 
           echo "$UPSTREAM_SHA_FULL" > "$MARKER"
           sed -i "s/^Version:.*/Version:        ${UPSTREAM_VERSION}/" "$SPEC"
-          sed -i "s/^Release:.*/Release:        1.${UPSTREAM_TS}.${UPSTREAM_SHA}%{?dist}/" "$SPEC"
+          # Release format: <snapshot>.<our-iteration>%{?dist} — see spec comment
+          sed -i "s/^Release:.*/Release:        ${UPSTREAM_TS}.${UPSTREAM_SHA}.1%{?dist}/" "$SPEC"
 
           git add "$SPEC" "$MARKER"
           if git diff --cached --quiet; then

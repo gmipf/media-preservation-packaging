@@ -5,7 +5,12 @@
 
 Name:           mpf-check
 Version:        3.7.1
-Release:        1.20260612220844.b16abc89%{?dist}
+# Release format: <upstream-rolling-snapshot>.<our-iteration>%{?dist}
+# Snapshot = <UTC-timestamp-compact>.<short-SHA>, written by the
+# watch-mpf-rolling.yml workflow whenever the upstream rolling tag
+# moves. Trailing .1 is our packaging-iteration counter (bump if we
+# change the spec without an upstream change).
+Release:        20260612220844.b16abc89.1%{?dist}
 Summary:        Validator that generates Redump !submissionInfo.txt from disc-dump logs
 
 License:        MIT
