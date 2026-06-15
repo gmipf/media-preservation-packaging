@@ -177,9 +177,9 @@ ln -s %{name}.1 %{buildroot}%{_mandir}/man1/unscrambler.1
 
 %changelog
 * Mon Jun 15 2026 gmipf <gmipf64@gmail.com> - 20260101-2
-- Manpage: add NOTES section pinning the manpage to upstream tags
-  (DIC 20260101, EccEdc 20240901, DVDAuth v1.4, unscrambler 0.5.5) so
-  staleness is obvious if upstream syntax drifts before we update
+- Manpage: add NOTES section pinning the manpage to DiscImageCreator
+  tag 20260101 (helpers have effectively frozen syntax, not pinned),
+  so staleness is obvious if upstream DIC syntax drifts
 
 * Mon Jun 15 2026 gmipf <gmipf64@gmail.com> - 20260101-1
 - Initial COPR build of DiscImageCreator suite (Phase 3.5)

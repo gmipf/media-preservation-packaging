@@ -119,23 +119,15 @@ specs and protocol references (full
 tree).
 .SH NOTES
 This manpage is handwritten as part of the Fedora packaging \(em
-upstream provides none. It was authored against the following upstream
-tags:
-.IP \(bu 2
+upstream provides none. It was authored against
 .B DiscImageCreator
-20260101
-.IP \(bu 2
-.B EccEdc
-20240901
-.IP \(bu 2
-.B DVDAuth
-v1.4
-.IP \(bu 2
-.B unscrambler
-0.5.5
+tag
+.BR 20260101 .
+The bundled helpers (eccedc, dvdauth, unscrambler) have effectively
+frozen syntax and are not separately version-pinned here.
 .PP
-If you observe commands or options here that no longer match a
-binary's actual
+If you observe commands or options that no longer match the binary's
+actual
 .B --help
 output, the upstream
 .I Release_ANSI/Doc/Reference.md
