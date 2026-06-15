@@ -1,6 +1,6 @@
 Name:           redumper
 Version:        724
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        A low-level byte-perfect CD disc dumper
 
 # Release build strips debug symbols anyway; auto-generated debuginfo
@@ -10,6 +10,7 @@ Summary:        A low-level byte-perfect CD disc dumper
 License:        GPL-3.0-only
 URL:            https://github.com/superg/redumper
 Source0:        %{url}/archive/refs/tags/b%{version}.tar.gz#/%{name}-b%{version}.tar.gz
+Source1:        redumper.1
 
 BuildRequires:  cmake >= 3.28
 BuildRequires:  ninja-build
@@ -55,12 +56,22 @@ cmake --build BUILD --config Release
 %install
 DESTDIR=%{buildroot} cmake --install BUILD
 
+# Manpage (handwritten; upstream provides none)
+install -d %{buildroot}%{_mandir}/man1
+install -m 0644 %{SOURCE1} %{buildroot}%{_mandir}/man1/redumper.1
+
 %files
 %license LICENSE
 %doc README.md
 %caps(cap_sys_rawio=ep) %{_bindir}/redumper
+%{_mandir}/man1/redumper.1*
 
 %changelog
+* Mon Jun 15 2026 gmipf <gmipf64@gmail.com> - 724-2
+- Add handwritten redumper(1) manpage (upstream provides none); pinned
+  to b724 — flagged stale-friendly in NOTES section if upstream syntax
+  drifts before this manpage is updated
+
 * Sun Jun 14 2026 gmipf <gmipf64@gmail.com> - 724-1
 - Initial COPR build of redumper b724 for Fedora
 - Source build from upstream tag b724 (GPL-3.0-only)

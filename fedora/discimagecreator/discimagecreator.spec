@@ -11,7 +11,7 @@
 
 Name:           discimagecreator
 Version:        %{dicver}
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Low-level disc dumper plus EccEdc / DVDAuth / unscrambler helpers
 License:        Apache-2.0 AND GPL-3.0-or-later AND GPL-2.0-or-later
 URL:            https://github.com/saramibreak/DiscImageCreator
@@ -176,6 +176,11 @@ ln -s %{name}.1 %{buildroot}%{_mandir}/man1/unscrambler.1
 %{_mandir}/man1/unscrambler.1*
 
 %changelog
+* Mon Jun 15 2026 gmipf <gmipf64@gmail.com> - 20260101-2
+- Manpage: add NOTES section pinning the manpage to upstream tags
+  (DIC 20260101, EccEdc 20240901, DVDAuth v1.4, unscrambler 0.5.5) so
+  staleness is obvious if upstream syntax drifts before we update
+
 * Mon Jun 15 2026 gmipf <gmipf64@gmail.com> - 20260101-1
 - Initial COPR build of DiscImageCreator suite (Phase 3.5)
 - Bundles DiscImageCreator (Apache-2.0) plus three helper tools:
