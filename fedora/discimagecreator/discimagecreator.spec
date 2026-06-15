@@ -67,6 +67,12 @@ sed -i \
     DiscImageCreator/get.cpp \
     DiscImageCreator/xml.cpp
 
+# EccEdc upstream 20240901 predates GCC 14's stricter transitive header
+# rules — _external/ecm.cpp uses uint32_t without including <cstdint>.
+# Prepend the include so Fedora 43+ (GCC 14) builds.
+sed -i '1i #include <cstdint>' \
+    EccEdc-%{eccedcver}/EccEdc/_external/ecm.cpp
+
 %build
 # Main DiscImageCreator via meson against system openssl/zlib/libarchive
 %meson
