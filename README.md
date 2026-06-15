@@ -10,22 +10,34 @@ respective project URLs (see below).
 
 ## Tools
 
-| Tool | Upstream | Fedora | Debian | Arch | Alpine |
+| Tool | Upstream pinned to | Fedora | Debian | Arch | Alpine |
 |---|---|---|---|---|---|
 | [redumper](https://github.com/superg/redumper) | b724 | ✅ | — | — | — |
-| [MPF](https://github.com/SabreTools/MPF) | — | planned | — | — | — |
-| [DiscImageCreator](https://github.com/saramibreak/DiscImageCreator) | — | planned | — | — | — |
+| [MPF.Check](https://github.com/SabreTools/MPF) | rolling (auto-tracked) | ✅ | — | — | — |
+| [DiscImageCreator suite](https://github.com/saramibreak/DiscImageCreator) | 20260101 (+ EccEdc / DVDAuth / unscrambler bundled) | ✅ | — | — | — |
+| [Aaru](https://github.com/aaru-dps/Aaru) | v6.0.0-alpha.19 | ✅ | — | — | — |
 
 ## Layout
 
 ```
 .
-├── .packit.yaml              # Packit-as-a-Service config (drives Fedora COPR builds)
-├── LICENSE                   # MIT (recipes only; tools keep their own licenses)
+├── .packit.yaml                            # Packit-as-a-Service config (drives Fedora COPR builds)
+├── .github/workflows/
+│   └── watch-mpf-rolling.yml               # 6h watcher for MPF's rolling tag
+├── LICENSE                                 # MIT (recipes only; tools keep their own licenses)
 ├── README.md
 └── fedora/
-    └── <tool>/
-        └── <tool>.spec       # RPM spec
+    ├── redumper/redumper.spec              # source build (clang + libc++ -static)
+    ├── mpf-check/
+    │   ├── mpf-check.spec                  # repackage of upstream .NET self-contained binary
+    │   └── .rolling-sha                    # last seen upstream rolling SHA (written by watcher)
+    ├── discimagecreator/
+    │   ├── discimagecreator.spec           # multi-source: DIC + 3 helpers in one fat RPM
+    │   └── discimagecreator.1              # handwritten manpage
+    └── aaru/
+        ├── aaru.spec                       # repackage of upstream .NET self-contained binary
+        ├── aaru.desktop                    # menu entry for `aaru gui`
+        └── aaru.1                          # handwritten manpage
 ```
 
 Future distro additions follow the same `<distro>/<tool>/` pattern:
@@ -41,22 +53,53 @@ conventions — no custom abstraction layer on top.
 
 ## Automation
 
-Fedora builds are driven by [Packit](https://packit.dev/). When a new tag
-appears in an upstream tool repo, Packit fetches the tarball, runs the spec,
-and triggers a build in COPR project `gmipf/media-preservation`. No manual
-`copr-cli build` needed.
+Fedora builds are driven by [Packit](https://packit.dev/). Every commit that
+touches a tool's `fedora/<tool>/` path triggers Packit to fetch sources, build
+the SRPM, and ship a build to COPR project `gmipf/media-preservation`. No
+manual `copr-cli build` needed.
 
-See `.packit.yaml` for the trigger rules.
+`MPF.Check` rolls — upstream force-pushes its `rolling` tag on every release.
+`.github/workflows/watch-mpf-rolling.yml` polls every six hours, rewrites the
+spec's Version and stores the new upstream SHA when something has actually
+changed, and commits the bump — which then triggers Packit normally.
+
+The other three packages (redumper, discimagecreator, aaru) are manually
+bumped on new upstream tags.
+
+See `.packit.yaml` for the per-tool trigger configuration.
 
 ## Install (Fedora 43+)
 
 ```sh
 sudo dnf copr enable gmipf/media-preservation
-sudo dnf install redumper
+sudo dnf install redumper discimagecreator mpf-check aaru
 ```
 
-For drive access setup (CAP_SYS_RAWIO is set on the binary, but you still
-need read access to `/dev/sr*`) see the COPR project description.
+`aaru` ships both the CLI and its Avalonia GUI in one binary — launch the GUI
+via `aaru gui` or via the `Aaru` desktop entry. The other three are
+CLI-only.
+
+`cap_sys_rawio` is preset on the dumper binaries (redumper, discimagecreator,
+aaru) so vendor SCSI passthrough commands work without sudo. Drive-node
+access (`/dev/sr*`) is granted automatically via `uaccess` when logged in at
+a local desktop seat; for headless / SSH use add yourself to the `cdrom`
+group. See the [COPR project page](https://copr.fedorainfracloud.org/coprs/gmipf/media-preservation/)
+for details.
+
+## Versioning convention
+
+All RPMs in this repo follow one convention:
+
+- **Stable upstream tags**: bare Version + simple Release-N
+  `redumper-724-2`, `discimagecreator-20260101-2`
+- **Pre-releases / rolling snapshots**: `<base>~<extra>` Version + bare-N Release
+  `aaru-6.0.0~alpha.19-1`, `mpf-check-3.7.1~20260612220844.b16abc89-1`
+- **Iteration counter** (`-1`, `-2`, …) is always the last NEVRA segment
+- **Epoch** stays at 0 (implicit) across the board — no `1:` prefix on any package
+
+The tilde sorts before any other character in RPM version comparison, so
+pre-releases automatically rank below stable bumps without needing any
+clever `0.<N>.alpha.<M>` Release tricks.
 
 ## Status
 
