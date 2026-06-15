@@ -31,7 +31,7 @@ jobs:
           fi
 
           UPSTREAM_SHA=${UPSTREAM_SHA_FULL:0:8}
-          UPSTREAM_TS=$(gh api repos/SabreTools/MPF/releases/tags/rolling --jq '.published_at' | tr -d '-:TZ' | head -c 14)
+          UPSTREAM_TS=$(gh api repos/SabreTools/MPF/releases/tags/rolling --jq '.published_at' | tr -d -- '-:TZ' | head -c 14)
           UPSTREAM_VERSION=$(curl -fsSL "https://raw.githubusercontent.com/SabreTools/MPF/${UPSTREAM_SHA_FULL}/MPF.Check/MPF.Check.csproj" \
                              | grep -oP '(?<=<VersionPrefix>)[^<]+' | head -1)
 
@@ -46,12 +46,13 @@ jobs:
           sed -i "s/^Version:.*/Version:        ${UPSTREAM_VERSION}/" "$SPEC"
           sed -i "s/^Release:.*/Release:        1.${UPSTREAM_TS}.${UPSTREAM_SHA}%{?dist}/" "$SPEC"
 
-          if git diff --quiet; then
-            echo "Spec unchanged after rewrite (unexpected) — exiting clean"
+          git add "$SPEC" "$MARKER"
+          if git diff --cached --quiet; then
+            echo "Spec and marker unchanged after rewrite — exiting clean"
             exit 0
           fi
 
           git config user.name "rolling-watcher"
           git config user.email "actions@github.com"
-          git commit -am "chore: mpf-check ${UPSTREAM_VERSION} rolling ${UPSTREAM_SHA} @ ${UPSTREAM_TS}"
+          git commit -m "chore: mpf-check ${UPSTREAM_VERSION} rolling ${UPSTREAM_SHA} @ ${UPSTREAM_TS}"
           git push
