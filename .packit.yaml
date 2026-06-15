@@ -51,6 +51,20 @@ packages:
         - bash -c "spectool -g discimagecreator.spec 1>&2"
         - bash -c "ls -1 DiscImageCreator-*.tar.gz | head -1"
 
+  aaru:
+    paths:
+      - fedora/aaru/
+    specfile_path: aaru.spec
+    upstream_project_url: https://github.com/aaru-dps/Aaru
+    # Aaru is currently on v6 alpha pre-releases; we pin manually in
+    # the spec (no watcher). create-archive fetches the maintainer's
+    # signed source tarball — the GitHub auto-archive lacks vendored
+    # NuGet content and won't restore.
+    actions:
+      create-archive:
+        - bash -c "spectool -g aaru.spec 1>&2"
+        - bash -c "ls -1 aaru-src-*.tar.xz | head -1"
+
 jobs:
   - job: pull_from_upstream
     trigger: release
@@ -96,9 +110,21 @@ jobs:
     targets:
       - fedora-all-x86_64
 
+  # aaru: spec-supplied (6.0.0-0.alpha.19.1) is monotonic; on next
+  # upstream alpha bump the Release segment goes up.
+  - job: copr_build
+    trigger: commit
+    branch: main
+    packages: [aaru]
+    update_release: false
+    owner: gmipf
+    project: media-preservation
+    targets:
+      - fedora-all-x86_64
+
   - job: copr_build
     trigger: pull_request
-    packages: [redumper, mpf-check, discimagecreator]
+    packages: [redumper, mpf-check, discimagecreator, aaru]
     update_release: false
     owner: gmipf
     project: media-preservation

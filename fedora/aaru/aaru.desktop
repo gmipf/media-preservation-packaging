@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Aaru
+GenericName=Data Preservation Suite
+Exec=aaru gui
+Terminal=false
+Type=Application
+Icon=aaru
+Comment=Aaru Data Preservation Suite
+Categories=Utility;FileTools;Filesystem;
+Keywords=disc;dump;preservation;cd;dvd;blu-ray;
