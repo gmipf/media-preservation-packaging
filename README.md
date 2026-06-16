@@ -12,7 +12,7 @@ respective project URLs (see below).
 
 | Tool | Update mode | Fedora | Debian | Arch | Alpine |
 |---|---|---|---|---|---|
-| [redumper](https://github.com/superg/redumper) | manual bump on new upstream tags (binary repackage) | ✅ | — | — | — |
+| [redumper](https://github.com/superg/redumper) | auto-tracked daily on new `b<N>` tags (binary repackage) | ✅ | — | — | — |
 | [MPF suite](https://github.com/SabreTools/MPF) | rolling, auto-tracked every 6 h (binary repackage); meta-package `mpf` pulls in `mpf-check` (validator), `mpf-cli` (headless orchestrator) and `mpf-gui` (Avalonia desktop UI) | ✅ | — | — | — |
 | [DiscImageCreator suite](https://github.com/saramibreak/DiscImageCreator) | auto-tracked daily on quarterly upstream tags (built from source — upstream binary links against EOL OpenSSL 1.1); bundles DIC + EccEdc + DVDAuth + unscrambler in one RPM | ✅ | — | — | — |
 | [Aaru](https://github.com/aaru-dps/Aaru) | auto-tracked daily on new `v6.0.0-alpha.<N>` tags (binary repackage); CLI + Avalonia GUI ship as one binary, launch the GUI via `aaru gui` | ✅ | — | — | — |
@@ -26,6 +26,7 @@ see the [COPR project page](https://copr.fedorainfracloud.org/coprs/gmipf/media-
 .
 ├── .packit.yaml                            # Packit-as-a-Service config (drives Fedora COPR builds)
 ├── .github/workflows/
+│   ├── watch-redumper-releases.yml         # daily watcher for redumper's b<N> tags
 │   ├── watch-mpf-rolling.yml               # 6h watcher for MPF's rolling tag
 │   ├── watch-dic-releases.yml              # daily watcher for DiscImageCreator's quarterly releases
 │   └── watch-aaru-releases.yml             # daily watcher for Aaru's v6.0.0-alpha.<N> tags
@@ -34,7 +35,8 @@ see the [COPR project page](https://copr.fedorainfracloud.org/coprs/gmipf/media-
 └── fedora/
     ├── redumper/
     │   ├── redumper.spec                   # repackage of upstream prebuilt linux-x64 ZIP
-    │   └── redumper.1                      # handwritten manpage
+    │   ├── redumper.1                      # handwritten manpage
+    │   └── .upstream-tag                   # last seen upstream tag (written by watcher)
     ├── mpf/
     │   ├── mpf.spec                        # multi-subpackage: mpf + mpf-check + mpf-cli + mpf-gui
     │   ├── mpf-gui.desktop                 # menu entry for `mpf-gui`
@@ -70,8 +72,15 @@ touches a tool's `fedora/<tool>/` path triggers Packit to fetch sources, build
 the SRPM, and ship a build to COPR project `gmipf/media-preservation`. No
 manual `copr-cli build` needed.
 
-Three of the four packages have GitHub-hosted watchers:
+All four packages have GitHub-hosted watchers that rewrite their spec on
+upstream releases and let Packit handle the rebuild:
 
+- **redumper** publishes new `b<N>` release tags frequently (multiple
+  per day during active bursts; quieter weeks otherwise).
+  `watch-redumper-releases.yml` polls daily, picks the highest `b<N>`
+  tag from the 20 most recent releases and rewrites the spec's
+  `Version:` line. Older `build_<N>` tags from the pre-convention era
+  are ignored by the filter.
 - **mpf** rolls — upstream force-pushes its `rolling` tag on every
   release. `watch-mpf-rolling.yml` polls every six hours, rewrites the
   spec's `%global mpfver` + `%global mpfsnap` lines and stores the new
@@ -91,9 +100,6 @@ Three of the four packages have GitHub-hosted watchers:
   rewrites `%global aaruprerel` on a bump. The workflow loud-fails if
   upstream transitions to stable v6.0.0, a beta/rc, or a v7+ major —
   the spec's tilde-versioning would need manual revision.
-
-`redumper` is the only package still bumped manually; it uses Packit's
-`pull_from_upstream` job to auto-handle release events.
 
 See `.packit.yaml` for the per-tool trigger configuration.
 

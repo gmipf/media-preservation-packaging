@@ -1,0 +1,70 @@
+name: watch-redumper-releases
+
+# redumper publishes new b<N> release tags very frequently (multiple per
+# day during active development bursts; quieter weeks otherwise). We poll
+# daily, pick the highest `b<N>` tag and rewrite the `Version:` line in
+# the spec. Older `build_<N>` tags (pre-convention) are ignored by the
+# filter. Source0 URL is deterministic from the tag, no body-parse.
+#
+# Loud-fail: if none of the top 20 most recent releases matches the
+# `b[0-9]+` pattern, upstream has switched naming again — manual review.
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Sync redumper spec with upstream release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SPEC=fedora/redumper/redumper.spec
+          MARKER=fedora/redumper/.upstream-tag
+
+          UPSTREAM_TAG=$(gh api 'repos/superg/redumper/releases?per_page=20' --jq '
+            [.[] | select(.draft == false and (.tag_name | test("^b[0-9]+$"))) | .tag_name]
+            | sort_by([. | sub("^b"; "") | tonumber])
+            | last
+          ')
+
+          if [ -z "$UPSTREAM_TAG" ] || [ "$UPSTREAM_TAG" = "null" ]; then
+            echo "::error::No matching b<N> tag found in the 20 most recent releases — upstream may have switched naming"
+            exit 1
+          fi
+
+          LOCAL_TAG=$(cat "$MARKER" 2>/dev/null || echo none)
+
+          if [ "$UPSTREAM_TAG" = "$LOCAL_TAG" ]; then
+            echo "Tag unchanged ($LOCAL_TAG) — no rebuild needed"
+            exit 0
+          fi
+
+          echo "Upstream tag changed: $LOCAL_TAG -> $UPSTREAM_TAG"
+
+          # Strip the `b` prefix — the spec's Version field carries just
+          # the numeric portion (the `b` lives in upstream_tag_template).
+          VERSION=${UPSTREAM_TAG#b}
+
+          echo "$UPSTREAM_TAG" > "$MARKER"
+          sed -i "s|^Version:.*|Version:        ${VERSION}|" "$SPEC"
+
+          git add "$SPEC" "$MARKER"
+          if git diff --cached --quiet; then
+            echo "Spec and marker unchanged after rewrite — exiting clean"
+            exit 0
+          fi
+
+          git config user.name "rolling-watcher"
+          git config user.email "actions@github.com"
+          git commit -m "chore: redumper ${UPSTREAM_TAG}"
+          git push

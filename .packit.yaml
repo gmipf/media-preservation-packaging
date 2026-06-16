@@ -76,15 +76,13 @@ packages:
         - bash -c "ls -1 aaru-*-alpha.19_linux_amd64.tar.xz | head -1"
 
 jobs:
-  - job: pull_from_upstream
-    trigger: release
-    packages: [redumper]
-    dist_git_branches:
-      - fedora-43
-
   # Per-package commit jobs. Packit uses each package's package-level
   # paths: declaration (see packages: above) to determine which packages
   # are "touched" by a commit and only fires the matching jobs.
+  # All four tools now have GitHub-hosted watchers that rewrite the spec
+  # on upstream releases and commit — Packit then auto-builds the COPR
+  # update from that commit. No `pull_from_upstream` jobs because none
+  # of these tools are packaged in Fedora's official dist-git.
   # Redumper: spec-supplied b<n> version is monotonic, no auto-suffix.
   # mpf: watcher writes Version (mpfver~mpfsnap) into the spec on every
   # upstream rolling-tag change; tilde sorts before any other char so
