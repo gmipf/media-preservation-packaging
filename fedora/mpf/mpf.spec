@@ -9,12 +9,16 @@
 
 Name:           mpf
 Version:        %{mpfver}~%{mpfsnap}
-# Release: 3 — Release 2 shipped the multi-subpackage refactor; -3 drops
-# the redundant `Requires: glibc` from check/cli/gui (the auto-detected
-# ld-linux-x86-64.so.2 NEEDED already pulls glibc transitively).
+# Release: 4 — adds first-launch config.json seeding in the /usr/bin
+# wrappers. Upstream MPF defaults bake relative paths
+# (`Programs/Creator/DiscImageCreator.out` etc.) that match its ZIP
+# bundle layout but not a system /usr-tree install. The wrappers now
+# write a config.json with `/usr/bin/<tool>` paths on first launch if
+# the user has no config yet — once the user touches settings the seed
+# becomes a no-op and personal choices are preserved.
 # The watcher resets Release to 1 on the next genuine upstream
 # rolling-SHA change (= new identity).
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Media Preservation Frontend suite (mpf-check, mpf-cli, mpf-gui)
 
 License:        MIT
@@ -191,23 +195,66 @@ install -d %{buildroot}%{_libdir}/mpf-gui
 install -m 0755 gui/MPF %{buildroot}%{_libdir}/mpf-gui/MPF.Avalonia
 
 # --- /usr/bin/ wrappers ---
+# The wrappers seed ~/.config/mpf/config.json with system-binary paths
+# if (and only if) the file is missing or empty. Upstream MPF defaults
+# to relative paths like "Programs/Creator/DiscImageCreator.out" baked
+# from the upstream ZIP bundle layout, which doesn't match a /usr-tree
+# install. Once the user touches the GUI/CLI settings the file is no
+# longer empty, so the seed becomes a no-op and user choices are
+# preserved.
 install -d %{buildroot}%{_bindir}
 
 cat > %{buildroot}%{_bindir}/mpf-check <<'EOF'
 #!/bin/sh
-exec %{_libdir}/mpf-check/MPF.Check "$@"
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/mpf"
+config="$config_dir/config.json"
+if [ ! -s "$config" ]; then
+    mkdir -p "$config_dir"
+    cat > "$config" <<'JSON'
+{
+  "AaruPath": "/usr/bin/aaru",
+  "DiscImageCreatorPath": "/usr/bin/DiscImageCreator.out",
+  "RedumperPath": "/usr/bin/redumper"
+}
+JSON
+fi
+exec /usr/lib64/mpf-check/MPF.Check "$@"
 EOF
 chmod 0755 %{buildroot}%{_bindir}/mpf-check
 
 cat > %{buildroot}%{_bindir}/mpf-cli <<'EOF'
 #!/bin/sh
-exec %{_libdir}/mpf-cli/MPF.CLI "$@"
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/mpf"
+config="$config_dir/config.json"
+if [ ! -s "$config" ]; then
+    mkdir -p "$config_dir"
+    cat > "$config" <<'JSON'
+{
+  "AaruPath": "/usr/bin/aaru",
+  "DiscImageCreatorPath": "/usr/bin/DiscImageCreator.out",
+  "RedumperPath": "/usr/bin/redumper"
+}
+JSON
+fi
+exec /usr/lib64/mpf-cli/MPF.CLI "$@"
 EOF
 chmod 0755 %{buildroot}%{_bindir}/mpf-cli
 
 cat > %{buildroot}%{_bindir}/mpf-gui <<'EOF'
 #!/bin/sh
-exec %{_libdir}/mpf-gui/MPF.Avalonia "$@"
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/mpf"
+config="$config_dir/config.json"
+if [ ! -s "$config" ]; then
+    mkdir -p "$config_dir"
+    cat > "$config" <<'JSON'
+{
+  "AaruPath": "/usr/bin/aaru",
+  "DiscImageCreatorPath": "/usr/bin/DiscImageCreator.out",
+  "RedumperPath": "/usr/bin/redumper"
+}
+JSON
+fi
+exec /usr/lib64/mpf-gui/MPF.Avalonia "$@"
 EOF
 chmod 0755 %{buildroot}%{_bindir}/mpf-gui
 
