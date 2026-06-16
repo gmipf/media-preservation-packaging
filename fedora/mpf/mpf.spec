@@ -9,12 +9,12 @@
 
 Name:           mpf
 Version:        %{mpfver}~%{mpfsnap}
-# Release: 2 — this is a packaging refactor (mpf-check standalone -> mpf
-# multi-subpackage) without an upstream version change. The previously
-# published mpf-check-3.7.1~20260612220844.b16abc89-1 sits at -1, so we
-# bump to -2 to ship a clean new NEVRA. The watcher resets Release to 1
-# on the next genuine upstream rolling-SHA change (= new identity).
-Release:        2%{?dist}
+# Release: 3 — Release 2 shipped the multi-subpackage refactor; -3 drops
+# the redundant `Requires: glibc` from check/cli/gui (the auto-detected
+# ld-linux-x86-64.so.2 NEEDED already pulls glibc transitively).
+# The watcher resets Release to 1 on the next genuine upstream
+# rolling-SHA change (= new identity).
+Release:        3%{?dist}
 Summary:        Media Preservation Frontend suite (mpf-check, mpf-cli, mpf-gui)
 
 License:        MIT
@@ -60,7 +60,6 @@ if you only need part of the suite.
 
 %package check
 Summary:        Validator that generates Redump !submissionInfo.txt from disc-dump logs
-Requires:       glibc
 Requires:       libicu
 Requires:       krb5-libs
 Requires:       libunwind
@@ -84,7 +83,6 @@ rolling release.
 
 %package cli
 Summary:        Headless dump orchestrator (drives redumper, aaru, discimagecreator)
-Requires:       glibc
 Requires:       libicu
 Requires:       krb5-libs
 Requires:       libunwind
@@ -112,7 +110,6 @@ release.
 
 %package gui
 Summary:        Avalonia desktop frontend for the MPF disc-dumping workflow
-Requires:       glibc
 Requires:       libicu
 Requires:       krb5-libs
 Requires:       libunwind
