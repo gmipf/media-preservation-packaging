@@ -15,7 +15,7 @@ respective project URLs (see below).
 | [redumper](https://github.com/superg/redumper) | manual bump on new upstream tags (binary repackage) | ✅ | — | — | — |
 | [MPF suite](https://github.com/SabreTools/MPF) | rolling, auto-tracked every 6 h (binary repackage); meta-package `mpf` pulls in `mpf-check` (validator), `mpf-cli` (headless orchestrator) and `mpf-gui` (Avalonia desktop UI) | ✅ | — | — | — |
 | [DiscImageCreator suite](https://github.com/saramibreak/DiscImageCreator) | auto-tracked daily on quarterly upstream tags (built from source — upstream binary links against EOL OpenSSL 1.1); bundles DIC + EccEdc + DVDAuth + unscrambler in one RPM | ✅ | — | — | — |
-| [Aaru](https://github.com/aaru-dps/Aaru) | manual bump on new alphas; CLI + Avalonia GUI ship as one binary, launch the GUI via `aaru gui` (binary repackage) | ✅ | — | — | — |
+| [Aaru](https://github.com/aaru-dps/Aaru) | auto-tracked daily on new `v6.0.0-alpha.<N>` tags (binary repackage); CLI + Avalonia GUI ship as one binary, launch the GUI via `aaru gui` | ✅ | — | — | — |
 
 For the currently shipping versions and full install instructions,
 see the [COPR project page](https://copr.fedorainfracloud.org/coprs/gmipf/media-preservation/).
@@ -27,7 +27,8 @@ see the [COPR project page](https://copr.fedorainfracloud.org/coprs/gmipf/media-
 ├── .packit.yaml                            # Packit-as-a-Service config (drives Fedora COPR builds)
 ├── .github/workflows/
 │   ├── watch-mpf-rolling.yml               # 6h watcher for MPF's rolling tag
-│   └── watch-dic-releases.yml              # daily watcher for DiscImageCreator's user-attachment releases
+│   ├── watch-dic-releases.yml              # daily watcher for DiscImageCreator's quarterly releases
+│   └── watch-aaru-releases.yml             # daily watcher for Aaru's v6.0.0-alpha.<N> tags
 ├── LICENSE                                 # MIT (recipes only; tools keep their own licenses)
 ├── README.md
 └── fedora/
@@ -47,7 +48,8 @@ see the [COPR project page](https://copr.fedorainfracloud.org/coprs/gmipf/media-
     └── aaru/
         ├── aaru.spec                       # repackage of upstream .NET self-contained binary
         ├── aaru.desktop                    # menu entry for `aaru gui`
-        └── aaru.1                          # handwritten manpage
+        ├── aaru.1                          # handwritten manpage
+        └── .upstream-tag                   # last seen upstream tag (written by watcher)
 ```
 
 Future distro additions follow the same `<distro>/<tool>/` pattern:
@@ -68,7 +70,7 @@ touches a tool's `fedora/<tool>/` path triggers Packit to fetch sources, build
 the SRPM, and ship a build to COPR project `gmipf/media-preservation`. No
 manual `copr-cli build` needed.
 
-Two of the four packages have GitHub-hosted watchers:
+Three of the four packages have GitHub-hosted watchers:
 
 - **mpf** rolls — upstream force-pushes its `rolling` tag on every
   release. `watch-mpf-rolling.yml` polls every six hours, rewrites the
@@ -83,9 +85,15 @@ Two of the four packages have GitHub-hosted watchers:
   repos), so we recompile against OpenSSL 3 ourselves until upstream
   ([saramibreak/DiscImageCreator#321](https://github.com/saramibreak/DiscImageCreator/issues/321))
   migrates or static-links.
+- **aaru** is on the v6.0.0 alpha track; upstream publishes a new
+  `v6.0.0-alpha.<N>` tag every two to six weeks. `watch-aaru-releases.yml`
+  polls daily, picks the highest numeric `alpha.<N>[.<M>]` tag and
+  rewrites `%global aaruprerel` on a bump. The workflow loud-fails if
+  upstream transitions to stable v6.0.0, a beta/rc, or a v7+ major —
+  the spec's tilde-versioning would need manual revision.
 
-`redumper` and `aaru` are manually bumped on new upstream tags. redumper
-uses Packit's `pull_from_upstream` job to auto-handle release events.
+`redumper` is the only package still bumped manually; it uses Packit's
+`pull_from_upstream` job to auto-handle release events.
 
 See `.packit.yaml` for the per-tool trigger configuration.
 
