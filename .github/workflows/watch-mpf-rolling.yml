@@ -48,11 +48,27 @@ jobs:
           echo "$UPSTREAM_SHA_FULL" > "$MARKER"
 
           # Tilde-style rolling snapshot lives in two %global lines in the
-          # spec. We rewrite both: %global mpfver -> base, %global mpfsnap
-          # -> <UTC-TS>.<short-SHA>. Release stays at 1 — each new snapshot
-          # is a fresh identity.
+          # spec. Rewrite both (%global mpfver -> base, %global mpfsnap ->
+          # <UTC-TS>.<short-SHA>) and reset Release to 1: a new snapshot is a
+          # fresh identity, so the packaging-iteration counter starts over.
+          # RPM sorts on Version first, so -1 still supersedes the previous
+          # snapshot's -N.
           sed -i "s/^%global mpfver .*/%global mpfver         ${UPSTREAM_VERSION}/"           "$SPEC"
           sed -i "s/^%global mpfsnap .*/%global mpfsnap        ${UPSTREAM_TS}.${UPSTREAM_SHA}/" "$SPEC"
+          sed -i "s/^Release:.*/Release:        1%{?dist}/"                                     "$SPEC"
+
+          # Prepend a %changelog entry for the new snapshot. EVR is written
+          # without %{?dist} to match the existing hand-written entries.
+          CL_ENTRY=$(mktemp)
+          {
+            printf '* %s gmipf <gmipf64@gmail.com> - %s~%s.%s-1\n' \
+              "$(LC_ALL=C date -u +'%a %b %d %Y')" "$UPSTREAM_VERSION" "$UPSTREAM_TS" "$UPSTREAM_SHA"
+            printf -- '- Automated rolling-snapshot sync to upstream MPF commit %s\n' "$UPSTREAM_SHA"
+            printf '  (rolling tag, published %s UTC); Release reset to 1.\n' "$UPSTREAM_TS"
+            printf '\n'
+          } > "$CL_ENTRY"
+          sed -i "/^%changelog/r $CL_ENTRY" "$SPEC"
+          rm -f "$CL_ENTRY"
 
           git add "$SPEC" "$MARKER"
           if git diff --cached --quiet; then

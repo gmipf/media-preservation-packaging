@@ -9,15 +9,14 @@
 
 Name:           mpf
 Version:        %{mpfver}~%{mpfsnap}
-# Release: 5 — wrappers now also heal existing configs: Path entries
-# pointing at non-existent files (or missing entirely) get reset to the
-# canonical `/usr/bin/<tool>` location at launch time. Other keys are
-# left untouched, so user customizations are preserved. Release 4 only
-# seeded on first launch which missed the common case of an existing
-# config from a prior MPF.Avalonia run that baked relative defaults
-# (`Programs/Creator/DiscImageCreator.out` etc.) into the file.
-# The watcher resets Release to 1 on the next genuine upstream
-# rolling-SHA change (= new identity).
+# watch-mpf-rolling.yml resets this to 1 on every new upstream rolling
+# snapshot: a fresh %%{mpfsnap} is a new identity, so the packaging
+# iteration counter starts over (RPM sorts on Version first, so -1 still
+# supersedes the previous snapshot's -N). Bump manually only for
+# spec-only changes that keep the same snapshot; per-change rationale
+# lives in the changelog. (Stuck at 5 here from pre-fix manual bumps of
+# the 71dafe3d snapshot — already shipped as -5, so left as-is to avoid
+# a downgrade; the next snapshot resets it.)
 Release:        5%{?dist}
 Summary:        Media Preservation Frontend suite (mpf-check, mpf-cli, mpf-gui)
 
