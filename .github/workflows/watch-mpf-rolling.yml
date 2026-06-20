@@ -86,7 +86,8 @@ jobs:
           # since trigger refs are disposable and nobody branches off them.
           # Fires ONLY the mpf job; other tools keep their NEVRA; main stays
           # canonical and builds nothing (no job watches main).
-          # Manual single build:  git push origin main:build-mpf
+          # Manual single build:  scripts/build-tool.sh mpf  (Weg B+ guard
+          # auto-bumps Release; never hand-push main:build-mpf unguarded)
           git push origin HEAD:main
           git checkout -q -b trigger-tmp
           printf '# build-mpf — MPF (Fedora/COPR trigger branch)\n\nAuto-managed **trigger branch** for the `mpf` package: a push here fires\nthe mpf COPR build via Packit, nothing else rebuilds. Canonical source is\n`main` (do not edit here). Packaging: `fedora/mpf/`.\n' > README.md
