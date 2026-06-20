@@ -82,4 +82,8 @@ jobs:
           git config user.name "rolling-watcher"
           git config user.email "actions@github.com"
           git commit -m "chore: redumper ${UPSTREAM_TAG}"
-          git push
+          # Canonical commit to main builds nothing; fast-forwarding this
+          # tool's trigger branch fires ONLY the redumper copr_build job.
+          # See .packit.yaml. Manual single build:
+          #   git push origin main:build-redumper
+          git push origin HEAD:main HEAD:build-redumper

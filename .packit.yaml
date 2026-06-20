@@ -76,10 +76,19 @@ packages:
         - bash -c "ls -1 aaru-*-alpha.19_linux_amd64.tar.xz | head -1"
 
 jobs:
-  # Per-package commit jobs. Packit uses each package's package-level
-  # paths: declaration (see packages: above) to determine which packages
-  # are "touched" by a commit and only fires the matching jobs.
-  # All four tools now have GitHub-hosted watchers that rewrite the spec
+  # Per-package commit jobs, each pinned to its OWN trigger branch
+  # (build-<tool>). Packit has no working path-based job filter for
+  # trigger: commit — the package-level paths: field only scopes SRPM
+  # source extraction, NOT triggering (packit-service#2006 / PR #2780
+  # still unmerged as of 2026-06). So triggers are isolated by BRANCH:
+  # a push to main builds nothing (no job watches main); each tool's
+  # watcher fast-forwards its build-<tool> branch
+  # (git push origin HEAD:main HEAD:build-<tool>), firing ONLY that
+  # tool's job. This stops unrelated tools from rebuilding with an
+  # unchanged NEVRA (a same-NEVRA rebuild republishes a new checksum and
+  # breaks `dnf` clients). Manual single-tool build:
+  #   git push origin main:build-<tool>
+  # All four tools have GitHub-hosted watchers that rewrite the spec
   # on upstream releases and commit — Packit then auto-builds the COPR
   # update from that commit. No `pull_from_upstream` jobs because none
   # of these tools are packaged in Fedora's official dist-git.
@@ -89,7 +98,7 @@ jobs:
   # snapshot ordering is consistent without auto-suffix.
   - job: copr_build
     trigger: commit
-    branch: main
+    branch: build-redumper
     packages: [redumper]
     update_release: false
     owner: gmipf
@@ -99,7 +108,7 @@ jobs:
 
   - job: copr_build
     trigger: commit
-    branch: main
+    branch: build-mpf
     packages: [mpf]
     update_release: false
     owner: gmipf
@@ -111,7 +120,7 @@ jobs:
   # no auto-suffix needed.
   - job: copr_build
     trigger: commit
-    branch: main
+    branch: build-dic
     packages: [discimagecreator]
     update_release: false
     owner: gmipf
@@ -123,7 +132,7 @@ jobs:
   # upstream alpha bump the Release segment goes up.
   - job: copr_build
     trigger: commit
-    branch: main
+    branch: build-aaru
     packages: [aaru]
     update_release: false
     owner: gmipf
