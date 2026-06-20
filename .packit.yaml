@@ -110,6 +110,13 @@ jobs:
   # upstream releases and commit — Packit then auto-builds the COPR
   # update from that commit. No `pull_from_upstream` jobs because none of
   # these tools are packaged in Fedora's official dist-git.
+  #
+  # No `pull_request` job either: with an explicit owner/project a PR build
+  # lands in the PRODUCTION Copr with the spec's exact NEVRA (update_release
+  # is false) -> same-NEVRA republish -> dnf checksum break. We work
+  # directly on main. If PR test builds are ever wanted, add a pull_request
+  # job WITHOUT owner/project so Packit uses a throwaway per-PR project
+  # ({namespace}-{repo}-{pr_id}), never production.
   - job: copr_build
     trigger: commit
     branch: build-redumper
@@ -148,15 +155,6 @@ jobs:
     trigger: commit
     branch: build-aaru
     packages: [aaru]
-    update_release: false
-    owner: gmipf
-    project: media-preservation
-    targets:
-      - fedora-all-x86_64
-
-  - job: copr_build
-    trigger: pull_request
-    packages: [redumper, mpf, discimagecreator, aaru]
     update_release: false
     owner: gmipf
     project: media-preservation
