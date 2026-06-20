@@ -77,30 +77,41 @@ packages:
 
 jobs:
   # Per-package commit jobs, each pinned to its OWN trigger branch
-  # (build-<tool>). Packit has no working path-based job filter for
-  # trigger: commit — the package-level paths: field only scopes SRPM
-  # source extraction, NOT triggering (packit-service#2006 / PR #2780
-  # still unmerged as of 2026-06). So triggers are isolated by BRANCH:
-  # a push to main builds nothing (no job watches main); each tool's
-  # watcher fast-forwards its build-<tool> branch
-  # (git push origin HEAD:main HEAD:build-<tool>), firing ONLY that
-  # tool's job. This stops unrelated tools from rebuilding with an
-  # unchanged NEVRA (a same-NEVRA rebuild republishes a new checksum and
-  # breaks `dnf` clients). Manual single-tool build:
-  #   git push origin main:build-<tool>
-  # All four tools have GitHub-hosted watchers that rewrite the spec
-  # on upstream releases and commit — Packit then auto-builds the COPR
-  # update from that commit. No `pull_from_upstream` jobs because none
-  # of these tools are packaged in Fedora's official dist-git.
-  # Redumper: spec-supplied b<n> version is monotonic, no auto-suffix.
-  # mpf: watcher writes Version (mpfver~mpfsnap) into the spec on every
-  # upstream rolling-tag change; tilde sorts before any other char so
-  # snapshot ordering is consistent without auto-suffix.
+  # (build-<tool>). Two independent guarantees keep `dnf` clients from
+  # ever hitting a checksum mismatch:
+  #
+  # 1. BRANCH-SCOPING — only the changed tool rebuilds.
+  #    Packit has no working path-based job filter for trigger: commit
+  #    (the package-level paths: field only scopes SRPM source
+  #    extraction, NOT triggering — packit-service#2006 / PR #2780 still
+  #    unmerged as of 2026-06). So triggers are isolated by BRANCH: a
+  #    push to main builds nothing (no job watches main); each tool's
+  #    watcher first pushes the canonical commit to main (builds
+  #    nothing), then recreates its build-<tool> branch with a short,
+  #    branch-specific landing README and force-pushes it (the README
+  #    diff means build-<tool> is not a fast-forward of main; trigger
+  #    refs are disposable so the force-push is harmless). That fires
+  #    ONLY that tool's job. Manual single-tool build:
+  #      git push origin main:build-<tool>
+  #
+  # 2. update_release: true — every build gets a UNIQUE Release.
+  #    Packit appends a monotonic snapshot suffix (timestamp + commit) to
+  #    the spec's Release at build time, so even a rebuild whose spec
+  #    NEVRA is otherwise unchanged (e.g. a manual packaging tweak with
+  #    no version bump) produces a distinct NEVRA. Without this a
+  #    same-NEVRA rebuild republishes a new checksum and breaks dnf.
+  #    Together with branch-scoping a same-NEVRA republish is impossible —
+  #    by isolation AND by construction.
+  #
+  # All four tools have GitHub-hosted watchers that rewrite the spec on
+  # upstream releases and commit — Packit then auto-builds the COPR
+  # update from that commit. No `pull_from_upstream` jobs because none of
+  # these tools are packaged in Fedora's official dist-git.
   - job: copr_build
     trigger: commit
     branch: build-redumper
     packages: [redumper]
-    update_release: false
+    update_release: true
     owner: gmipf
     project: media-preservation
     targets:
@@ -110,7 +121,7 @@ jobs:
     trigger: commit
     branch: build-mpf
     packages: [mpf]
-    update_release: false
+    update_release: true
     owner: gmipf
     project: media-preservation
     targets:
@@ -122,7 +133,7 @@ jobs:
     trigger: commit
     branch: build-dic
     packages: [discimagecreator]
-    update_release: false
+    update_release: true
     owner: gmipf
     project: media-preservation
     targets:
@@ -134,7 +145,7 @@ jobs:
     trigger: commit
     branch: build-aaru
     packages: [aaru]
-    update_release: false
+    update_release: true
     owner: gmipf
     project: media-preservation
     targets:
@@ -143,7 +154,7 @@ jobs:
   - job: copr_build
     trigger: pull_request
     packages: [redumper, mpf, discimagecreator, aaru]
-    update_release: false
+    update_release: true
     owner: gmipf
     project: media-preservation
     targets:
