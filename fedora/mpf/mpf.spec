@@ -1,5 +1,5 @@
 %global mpfver         3.7.1
-%global mpfsnap        20260618174800.71dafe3d
+%global mpfsnap        20260621032843.deb17867
 %global rolltag        rolling
 
 %global debug_package      %{nil}
@@ -17,7 +17,7 @@ Version:        %{mpfver}~%{mpfsnap}
 # lives in the changelog. (Stuck at 5 here from pre-fix manual bumps of
 # the 71dafe3d snapshot — already shipped as -5, so left as-is to avoid
 # a downgrade; the next snapshot resets it.)
-Release:        6%{?dist}
+Release:        1%{?dist}
 Summary:        Media Preservation Frontend suite (mpf-check, mpf-cli, mpf-gui)
 
 License:        MIT
@@ -318,6 +318,10 @@ install -m 0644 %{SOURCE6} %{buildroot}%{_mandir}/man1/mpf-gui.1
 %{_datadir}/icons/hicolor/512x512/apps/mpf.png
 
 %changelog
+* Sun Jun 21 2026 gmipf <gmipf64@gmail.com> - 3.7.1~20260621032843.deb17867-1
+- Automated rolling-snapshot sync to upstream MPF commit deb17867
+  (rolling tag, published 20260621032843 UTC); Release reset to 1.
+
 * Tue Jun 16 2026 gmipf <gmipf64@gmail.com> - 3.7.1~20260612220844.b16abc89-5
 - Wrappers now also heal an existing config.json: any Aaru/DIC/Redumper
   Path entry that is missing or points to a non-existent file is reset
