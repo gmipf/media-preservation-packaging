@@ -1,5 +1,5 @@
 %global mpfver         3.8.0
-%global mpfsnap        20260624155942.eee55902
+%global mpfsnap        20260625023516.db43edbe
 %global rolltag        rolling
 
 %global debug_package      %{nil}
@@ -318,6 +318,10 @@ install -m 0644 %{SOURCE6} %{buildroot}%{_mandir}/man1/mpf-gui.1
 %{_datadir}/icons/hicolor/512x512/apps/mpf.png
 
 %changelog
+* Thu Jun 25 2026 gmipf <gmipf64@gmail.com> - 3.8.0~20260625023516.db43edbe-1
+- Automated rolling-snapshot sync to upstream MPF commit db43edbe
+  (rolling tag, published 20260625023516 UTC); Release reset to 1.
+
 * Wed Jun 24 2026 gmipf <gmipf64@gmail.com> - 3.8.0~20260624155942.eee55902-1
 - Automated rolling-snapshot sync to upstream MPF commit eee55902
   (rolling tag, published 20260624155942 UTC); Release reset to 1.
