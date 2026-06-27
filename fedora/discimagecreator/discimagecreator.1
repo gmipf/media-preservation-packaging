@@ -118,23 +118,23 @@ specs and protocol references (full
 .I Release_ANSI/Doc/
 tree).
 .SH NOTES
-This manpage is handwritten as part of the Fedora packaging \(em
-upstream provides none. It was authored against
+This manual page is handwritten as part of the Fedora packaging \(em
+upstream provides none \(em and is intentionally static: it is neither
+generated nor version-stamped at build time. It describes
 .B DiscImageCreator
-tag
+as of upstream tag
 .BR 20260101 .
 The bundled helpers (eccedc, dvdauth, unscrambler) have effectively
-frozen syntax and are not separately version-pinned here.
+frozen syntax and are not separately pinned.
 .PP
-If you observe commands or options that no longer match the binary's
-actual
-.B --help
-output, the upstream
-.I Release_ANSI/Doc/Reference.md
-(shipped under
-.IR /usr/share/doc/discimagecreator/ )
-and the upstream repository are authoritative; this manpage may simply
-be stale.
+The page content itself is maintained by hand.
+.B DiscImageCreator
+has no
+.B \-\-help
+option; running the binary with no arguments prints its usage, and that
+output is the authoritative command reference. If the command summaries
+here ever fall behind it, treat the binary's own usage output and the
+upstream repository as authoritative; this page may simply be stale.
 .SH SEE ALSO
 .BR redumper (1)
 .PP

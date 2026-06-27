@@ -11,7 +11,7 @@
 
 Name:           discimagecreator
 Version:        %{dicver}
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        Low-level disc dumper plus EccEdc / DVDAuth / unscrambler helpers
 License:        Apache-2.0 AND GPL-3.0-or-later AND GPL-2.0-or-later
 URL:            https://github.com/saramibreak/DiscImageCreator
@@ -140,7 +140,8 @@ ln -s ../libexec/%{name}/EccEdc.out           %{buildroot}%{_bindir}/eccedc
 ln -s ../libexec/%{name}/DVDAuth.out          %{buildroot}%{_bindir}/dvdauth
 ln -s ../libexec/%{name}/unscrambler.out      %{buildroot}%{_bindir}/unscrambler
 
-# Manpage with symlink aliases for each binary name a user might type
+# Static handwritten manpage (Source4) with symlink aliases for each
+# binary name a user might type.
 install -d %{buildroot}%{_mandir}/man1
 install -m 0644 %{SOURCE4} %{buildroot}%{_mandir}/man1/%{name}.1
 ln -s %{name}.1 %{buildroot}%{_mandir}/man1/dic.1
@@ -176,6 +177,17 @@ ln -s %{name}.1 %{buildroot}%{_mandir}/man1/unscrambler.1
 %{_mandir}/man1/unscrambler.1*
 
 %changelog
+* Sat Jun 27 2026 gmipf <gmipf64@gmail.com> - 20260101-5
+- Manpage: reword NOTES to state plainly that the page is handwritten and
+  intentionally static (not generated or build-time stamped), based on
+  upstream tag 20260101; a fixed version marker rather than a dynamic one
+  that would imply per-release freshness the body does not have
+- Manpage: correct a stale "--help" reference (DIC has no --help; its
+  usage prints when the binary is run with no arguments)
+- Manpage: drop an inaccurate pointer that cited Release_ANSI/Doc/
+  Reference.md (a list of disc-format spec links, not a command
+  reference) as authoritative for commands
+
 * Mon Jun 15 2026 gmipf <gmipf64@gmail.com> - 20260101-2
 - Manpage: add NOTES section pinning the manpage to DiscImageCreator
   tag 20260101 (helpers have effectively frozen syntax, not pinned),
