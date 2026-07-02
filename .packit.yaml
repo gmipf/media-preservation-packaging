@@ -75,6 +75,22 @@ packages:
         - bash -c "spectool -g aaru.spec 1>&2"
         - bash -c "ls -1 aaru-*-alpha.19_linux_amd64.tar.xz | head -1"
 
+  # Stable Aaru 5.x, packaged SEPARATELY from the rolling v6 `aaru` above
+  # (different binary name / libdir / manpage — co-installable). MPF only
+  # supports stable Aaru, so this is the build it drives for floppy/optical
+  # dumping. Manually pinned in the spec (no watcher). spectool -g pulls
+  # just the prebuilt linux_amd64 tarball (no source tarball — this backend
+  # ships no icons/desktop/MIME).
+  aaru5:
+    paths:
+      - fedora/aaru5/
+    specfile_path: aaru5.spec
+    upstream_project_url: https://github.com/aaru-dps/Aaru
+    actions:
+      create-archive:
+        - bash -c "spectool -g aaru5.spec 1>&2"
+        - bash -c "ls -1 aaru-*_linux_amd64.tar.xz | head -1"
+
 jobs:
   # Per-package commit jobs, each pinned to its OWN trigger branch
   # (build-<tool>). Two mechanisms together keep `dnf` clients from ever
@@ -155,6 +171,18 @@ jobs:
     trigger: commit
     branch: build-aaru
     packages: [aaru]
+    update_release: false
+    owner: gmipf
+    project: media-preservation
+    targets:
+      - fedora-all-x86_64
+
+  # aaru5: stable 5.x, own trigger branch. Manually pinned; bump Release
+  # via scripts/build-tool.sh on a manual rebuild.
+  - job: copr_build
+    trigger: commit
+    branch: build-aaru5
+    packages: [aaru5]
     update_release: false
     owner: gmipf
     project: media-preservation

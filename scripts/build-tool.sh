@@ -25,7 +25,7 @@
 #
 # Usage
 # -----
-#   scripts/build-tool.sh <redumper|mpf|dic|aaru>
+#   scripts/build-tool.sh <redumper|mpf|dic|aaru|aaru5>
 #
 # Run it on a clean `main` (commit your spec edits first). It will, if needed,
 # add a Release-bump commit, push main (which builds nothing by design), then
@@ -43,7 +43,8 @@ case "$TOOL" in
   mpf)      PKG=mpf;               SPEC=fedora/mpf/mpf.spec;                             BR=build-mpf ;;
   dic)      PKG=discimagecreator;  SPEC=fedora/discimagecreator/discimagecreator.spec;  BR=build-dic ;;
   aaru)     PKG=aaru;              SPEC=fedora/aaru/aaru.spec;                           BR=build-aaru ;;
-  *) echo "usage: $0 <redumper|mpf|dic|aaru>" >&2; exit 2 ;;
+  aaru5)    PKG=aaru5;             SPEC=fedora/aaru5/aaru5.spec;                         BR=build-aaru5 ;;
+  *) echo "usage: $0 <redumper|mpf|dic|aaru|aaru5>" >&2; exit 2 ;;
 esac
 
 ROOT=$(git rev-parse --show-toplevel)
@@ -115,6 +116,7 @@ case "$TOOL" in
   mpf)      printf '# build-mpf — MPF (Fedora/COPR trigger branch)\n\nAuto-managed **trigger branch** for the `mpf` package: a push here fires\nthe mpf COPR build via Packit, nothing else rebuilds. Canonical source is\n`main` (do not edit here). Packaging: `fedora/mpf/`.\n' ;;
   dic)      printf '# build-dic — DiscImageCreator (Fedora/COPR trigger branch)\n\nAuto-managed **trigger branch** for the `discimagecreator` package: a push\nhere fires its COPR build via Packit, nothing else rebuilds. Canonical\nsource is `main` (do not edit here). Packaging: `fedora/discimagecreator/`.\n' ;;
   aaru)     printf '# build-aaru — Aaru (Fedora/COPR trigger branch)\n\nAuto-managed **trigger branch** for the `aaru` package: a push here fires\nthe aaru COPR build via Packit, nothing else rebuilds. Canonical source is\n`main` (do not edit here). Packaging: `fedora/aaru/`.\n' ;;
+  aaru5)    printf '# build-aaru5 — Aaru 5.x stable (Fedora/COPR trigger branch)\n\nAuto-managed **trigger branch** for the `aaru5` package: a push here fires\nthe aaru5 COPR build via Packit, nothing else rebuilds. Canonical source is\n`main` (do not edit here). Packaging: `fedora/aaru5/`.\n' ;;
 esac > README.md
 git add README.md
 git commit -q -m "trigger: $PKG build ($SPEC_V-$SPEC_RBASE)"
