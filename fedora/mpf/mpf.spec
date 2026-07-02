@@ -198,17 +198,21 @@ install -m 0755 gui/MPF %{buildroot}%{_libdir}/mpf-gui/MPF.Avalonia
 
 # --- /usr/bin/ wrappers ---
 # The wrappers seed AND heal ~/.config/mpf/config.json so the three
-# dumper-path keys always point at the system-installed binaries.
-# Upstream MPF defaults to relative paths like
-# "Programs/Creator/DiscImageCreator.out" baked from the upstream ZIP
-# bundle layout, which doesn't match a /usr-tree install.
+# dumper-path keys are always present and resolvable. We seed BARE tool
+# names (aaru5, DiscImageCreator.out, redumper) rather than absolute
+# paths: MPF (SabreTools/MPF#979) resolves a bare name through its
+# runtime directory and $PATH, so the config stays valid no matter where
+# the distro installs the dumpers and keeps working after the user
+# deletes config.json. Upstream MPF otherwise defaults to relative bundle
+# paths ("Programs/Creator/DiscImageCreator.out") that don't exist in a
+# /usr-tree install.
 #
 # Behavior at every launch:
-#   * config missing/empty  -> write a minimal 3-key seed
-#   * config exists         -> reset each Aaru/DIC/Redumper Path key
-#                              IFF it's missing or points to a non-
-#                              existent file; other keys are left alone
-#                              so user customizations are preserved
+#   * config missing/empty  -> write a minimal 3-key bare-name seed
+#   * config exists         -> reset each Aaru/DIC/Redumper key IFF its
+#                              value no longer resolves (empty, a bare
+#                              name not on $PATH, or a path that no longer
+#                              exists); resolvable user values are kept
 # Atomicity: heal writes to a sibling tmp file via mktemp + mv so a
 # crashed jq never leaves a half-written config behind.
 install -d %{buildroot}%{_bindir}
@@ -226,10 +230,21 @@ for pair in \
 #!/bin/sh
 config_dir="\${XDG_CONFIG_HOME:-\$HOME/.config}/mpf"
 config="\$config_dir/config.json"
-aaru_p=/usr/bin/aaru5
-dic_p=/usr/bin/DiscImageCreator.out
-red_p=/usr/bin/redumper
+aaru_p=aaru5
+dic_p=DiscImageCreator.out
+red_p=redumper
 mkdir -p "\$config_dir" 2>/dev/null
+
+# Does a configured tool value resolve the way MPF (#979) resolves it? A
+# value containing a separator must exist as a file; a bare name must be
+# found on \$PATH (command -v mirrors MPF's runtime-dir + \$PATH lookup).
+resolves() {
+    case "\$1" in
+        "")  return 1 ;;
+        */*) [ -e "\$1" ] ;;
+        *)   command -v "\$1" >/dev/null 2>&1 ;;
+    esac
+}
 
 if [ ! -s "\$config" ]; then
     cat > "\$config" <<JSON
@@ -244,9 +259,9 @@ elif command -v jq >/dev/null 2>&1; then
     cd_=\$(jq -r '.DiscImageCreatorPath // ""' "\$config" 2>/dev/null)
     cr=\$(jq -r '.RedumperPath // ""' "\$config" 2>/dev/null)
     fa=0; fd=0; fr=0
-    if [ -z "\$ca" ]  || [ ! -e "\$ca" ];  then fa=1; fi
-    if [ -z "\$cd_" ] || [ ! -e "\$cd_" ]; then fd=1; fi
-    if [ -z "\$cr" ]  || [ ! -e "\$cr" ];  then fr=1; fi
+    resolves "\$ca"  || fa=1
+    resolves "\$cd_" || fd=1
+    resolves "\$cr"  || fr=1
     if [ \$((fa + fd + fr)) -gt 0 ]; then
         tmp=\$(mktemp -p "\$config_dir" .config.json.XXXXXX 2>/dev/null)
         if [ -n "\$tmp" ] && jq \\
